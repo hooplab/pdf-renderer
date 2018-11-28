@@ -23,9 +23,10 @@ RUN yarn --frozen-lockfile
 # copy source
 COPY . .
 
+# build typescript
+RUN yarn build
+
 EXPOSE 3000
-ENV NODE_ENV production
-ENV PDF_RENDERER_PORT 3000
-ENV PDF_RENDERER_HOST localhost
+
 ENTRYPOINT [ "yarn" ]
 CMD [ "start" ]

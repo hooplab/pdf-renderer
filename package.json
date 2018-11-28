@@ -6,7 +6,6 @@
   "license": "MIT",
   "scripts": {
     "build": "tsc",
-    "prestart": "yarn run build",
     "start": "node .",
     "dev": "ts-node src/server.ts"
   },
