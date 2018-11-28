@@ -55,9 +55,6 @@ server.post("/api/pdf", pdfOpts, async (request, reply) => {
 const start = async (port: number, host: string) => {
   await server.ready();
 
-  console.log("Routes:");
-  console.log(server.printRoutes());
-
   try {
     await server.listen(port, host);
   } catch (err) {

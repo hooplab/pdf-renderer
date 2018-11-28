@@ -53,14 +53,13 @@ const createPuppeteerPool = async (options: PdfLaunchOptions) => {
         browser.once("disconnected", () => {
           console.log(`[pool] browser with pid '${pid}' disconnected`);
           shouldRepair[pid] = true;
-          console.log(shouldRepair);
         });
 
         console.log(`[pool] created browser with pid ${pid}`);
 
         return browser;
       } catch (err) {
-        console.error(`[pool] error when creating browser`);
+        console.error(`[pool] error while creating browser:`);
         console.error(err);
         throw err;
       }
@@ -77,6 +76,7 @@ const createPuppeteerPool = async (options: PdfLaunchOptions) => {
         // close browser
         await browser.close();
       } catch (err) {
+        console.error("[pool] error while destroying browser:");
         console.error(err);
       }
     },
@@ -87,14 +87,13 @@ const createPuppeteerPool = async (options: PdfLaunchOptions) => {
       try {
         const pid = browser.process().pid;
 
-        console.log("[pool] should repair?", shouldRepair, shouldRepair[pid]);
-
         if (shouldRepair[pid]) {
           return false;
         }
 
         return true;
       } catch (err) {
+        console.log("[pool] error validating browser");
         console.error(err);
         return false;
       }
@@ -128,12 +127,13 @@ const render = async (
   const page = await browser.newPage();
 
   page.on("error", err => {
+    console.error(`[render] page error:`);
     console.error(err);
     throw new Error(`page error: ${err}`);
   });
 
   page.on("requestfailed", request => {
-    console.error("request failed", request);
+    console.error(`[render] request failed: ${request}`);
     throw new Error(`page request failed: ${request}`);
   });
 
