@@ -7,7 +7,15 @@ const port = 3000;
 const host = "0.0.0.0";
 
 // Create a pdf renderer pool
-const pdfRenderer = pdf.launch({ poolOptions: { min: 5, max: 5 } });
+const pdfRenderer = pdf.launch({
+  puppeteerLaunchOptions: {
+    args: ["--no-sandbox", "--disable-setuid-sandbox"],
+  },
+  poolOptions: {
+    min: 2,
+    max: 10,
+  },
+});
 
 const server = fastify({
   ignoreTrailingSlash: true,
