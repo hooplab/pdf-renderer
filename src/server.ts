@@ -1,6 +1,7 @@
 import fastify from "fastify";
 
 import * as pdf from "./lib/pdf";
+import * as pdfRequest from "./domain/pdf/request";
 
 const port = 3000;
 const host = "0.0.0.0";
@@ -27,22 +28,22 @@ server.get("/api/_healthcheck", async (request, reply) => {
   }
 });
 
-server.get("/api/pdf", async (request, reply) => {
-  const options: pdf.RenderOptions = {
-    // url: "http://httpbin.org/status/403",
-    url: "file:///Users/hlindset/src/hoopla-pdf-renderer/foo.html",
-    mediaType: "print",
-    navigation: {},
-    waitForSelector: {
-      selector: ".document-ready",
-    },
-    pdf: {
-      format: "A4",
-    },
-  };
+const pdfOpts: fastify.RouteShorthandOptions = {
+  schema: {
+    body: pdfRequest.bodySchema,
+  },
+};
 
+server.post("/api/pdf", pdfOpts, async (request, reply) => {
   const renderer = await pdfRenderer;
-  const pdf = await renderer.render(options);
+
+  // this is a bit icky. but it has been validated by
+  // the json schema. should probably look at generating
+  // it using the typescript interface
+  const body = request.body as pdfRequest.Body;
+
+  const renderOptions = pdfRequest.pdfBodyToRenderOptions(body);
+  const pdf = await renderer.render(renderOptions);
 
   if (pdf) {
     reply.send(pdf);
