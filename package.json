@@ -1,5 +1,5 @@
 {
-  "name": "hoopla-pdf-renderer",
+  "name": "pdf-renderer",
   "version": "1.0.0",
   "main": "dist/server.js",
   "author": "Håvard Lindset <havard@hoopla.no>",
