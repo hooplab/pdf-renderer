@@ -4,6 +4,7 @@
   "main": "dist/server.js",
   "author": "Håvard Lindset <havard@hoopla.no>",
   "license": "MIT",
+  "private": true,
   "scripts": {
     "build": "tsc",
     "start": "node .",
