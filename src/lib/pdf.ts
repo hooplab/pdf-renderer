@@ -197,6 +197,9 @@ const render = async (
     console.log(`creating pdf with options: ${JSON.stringify(options.pdf)}`);
     const pdf = await page.pdf(options.pdf);
 
+    // close page (not waiting for it to complete)
+    page.close();
+
     if (pdf) {
       return pdf;
     } else {
