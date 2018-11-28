@@ -42,22 +42,28 @@ const createPuppeteerPool = async (options: PdfLaunchOptions) => {
     async create() {
       console.log("[pool] creating a new browser");
 
-      const browser = await puppeteer.launch(options.puppeteerLaunchOptions);
-      const pid = browser.process().pid;
+      try {
+        const browser = await puppeteer.launch(options.puppeteerLaunchOptions);
+        const pid = browser.process().pid;
 
-      // Update map of healthy pids
-      shouldRepair[pid] = false;
+        // Update map of healthy pids
+        shouldRepair[pid] = false;
 
-      // Trigger a cleanup if disconnected
-      browser.once("disconnected", () => {
-        console.log(`[pool] browser with pid '${pid}' disconnected`);
-        shouldRepair[pid] = true;
-        console.log(shouldRepair);
-      });
+        // Trigger a cleanup if disconnected
+        browser.once("disconnected", () => {
+          console.log(`[pool] browser with pid '${pid}' disconnected`);
+          shouldRepair[pid] = true;
+          console.log(shouldRepair);
+        });
 
-      console.log(`[pool] created browser with pid ${pid}`);
+        console.log(`[pool] created browser with pid ${pid}`);
 
-      return browser;
+        return browser;
+      } catch (err) {
+        console.error(`[pool] error when creating browser`);
+        console.error(err);
+        throw err;
+      }
     },
 
     async destroy(browser) {
@@ -70,21 +76,28 @@ const createPuppeteerPool = async (options: PdfLaunchOptions) => {
 
         // close browser
         await browser.close();
-      } catch (err) {}
+      } catch (err) {
+        console.error(err);
+      }
     },
 
     async validate(browser) {
       console.log("[pool] validating browser");
 
-      const pid = browser.process().pid;
+      try {
+        const pid = browser.process().pid;
 
-      console.log("[pool] should repair?", shouldRepair, shouldRepair[pid]);
+        console.log("[pool] should repair?", shouldRepair, shouldRepair[pid]);
 
-      if (shouldRepair[pid]) {
+        if (shouldRepair[pid]) {
+          return false;
+        }
+
+        return true;
+      } catch (err) {
+        console.error(err);
         return false;
       }
-
-      return true;
     },
   };
 
