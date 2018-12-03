@@ -2,7 +2,8 @@ import { LoadEvent, PDFFormat, MediaType } from "puppeteer";
 import { RenderOptions } from "../../lib/pdf";
 
 export interface Body {
-  url: string;
+  url?: string;
+  html?: string;
 
   waitForNavigation?: LoadEvent | LoadEvent[];
   waitForSelector?: string;
@@ -44,9 +45,13 @@ const formatEnum = [
 
 export const bodySchema = {
   type: "object",
-  required: ["url"],
+
+  // make sure either `url` or `html` is present
+  anyOf: [{ required: ["url"] }, { required: ["html"] }],
+
   properties: {
     url: { type: "string" },
+    html: { type: "string" },
 
     waitForNavigation: {
       anyOf: [
@@ -80,6 +85,7 @@ export const bodySchema = {
 export const pdfBodyToRenderOptions = (body: Body): RenderOptions => {
   return {
     url: body.url,
+    html: body.html,
     navigation: body.waitForNavigation
       ? {
           waitUntil: body.waitForNavigation,

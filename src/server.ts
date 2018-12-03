@@ -45,9 +45,8 @@ const pdfOpts: fastify.RouteShorthandOptions = {
 server.post("/api/pdf", pdfOpts, async (request, reply) => {
   const renderer = await pdfRenderer;
 
-  // this is a bit icky. but it has been validated by
-  // the json schema. should probably look at generating
-  // it using the typescript interface
+  // this is a bit icky. but it has been validated by the json schema.
+  // should probably generate it using the typescript interface
   const body = request.body as pdfRequest.Body;
 
   const renderOptions = pdfRequest.pdfBodyToRenderOptions(body);

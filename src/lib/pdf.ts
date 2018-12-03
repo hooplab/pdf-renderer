@@ -5,7 +5,8 @@ const LOW_PRIORITY = 0;
 const HIGH_PRIORITY = 1;
 
 export interface RenderOptions {
-  url: string;
+  url?: string;
+  html?: string;
   pdf: puppeteer.PDFOptions;
   timeout?: number;
   waitForSelector?: {
@@ -120,6 +121,16 @@ async function timeout<T>(promise: PromiseLike<T>, timeoutMs: number) {
   return await Promise.race([timeoutPromise, promise]);
 }
 
+const getUrl = (options: RenderOptions) => {
+  if (options.url) {
+    return options.url;
+  } else if (options.html) {
+    return `data:text/html;charset=UTF-8,${options.html}`;
+  } else {
+    throw new Error("either `url` or `html` must be supplied");
+  }
+};
+
 const render = async (
   browser: puppeteer.Browser,
   options: RenderOptions
@@ -145,7 +156,8 @@ const render = async (
       )}`
     );
 
-    const response = await page.goto(options.url, options.navigation);
+    const url = await getUrl(options);
+    const response = await page.goto(url, options.navigation);
 
     if (response && !response.ok()) {
       let responseText = "";
