@@ -149,18 +149,22 @@ const render = async (
     if (options.url) {
       const response = await page.goto(options.url, options.navigation);
 
-      if (response && !response.ok()) {
-        let responseText = "";
+      if (response) {
+        if (!response.ok()) {
+          let responseText = "";
 
-        try {
-          responseText = await response.text();
-        } catch (err) {}
+          try {
+            responseText = await response.text();
+          } catch (err) {}
 
-        throw new Error(
-          `response from '${
-            options.url
-          }' was not ok. received status code '${response.status()}' with response body: '${responseText}'`
-        );
+          throw new Error(
+            `response from '${
+              options.url
+            }' was not ok. received status code '${response.status()}' with response body: '${responseText}'`
+          );
+        }
+      } else {
+        throw new Error("response was null, somehow");
       }
     } else if (options.html) {
       await page.setContent(options.html);
