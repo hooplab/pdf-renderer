@@ -139,14 +139,14 @@ const render = async (
   });
 
   try {
-    // navigate to page
-    console.log(
-      `navigation to '${options.url}' with options: ${JSON.stringify(
-        options.navigation || {}
-      )}`
-    );
-
     if (options.url) {
+      // navigate to page
+      console.log(
+        `[render] navigation to '${options.url}' with options: ${JSON.stringify(
+          options.navigation || {}
+        )}`
+      );
+
       const response = await page.goto(options.url, options.navigation);
 
       if (response) {
@@ -167,6 +167,9 @@ const render = async (
         throw new Error("response was null, somehow");
       }
     } else if (options.html) {
+      console.log(
+        `[render] setting page content. length: ${options.html.length}`
+      );
       await page.setContent(options.html);
     } else {
       throw new Error("either `url` or `html` must be set");
