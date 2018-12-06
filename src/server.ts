@@ -36,6 +36,10 @@ server.get("/api/_healthcheck", async (request, reply) => {
   }
 });
 
+server.get("/api/_liveness", async (request, reply) => {
+  reply.send({ ok: true });
+});
+
 const pdfOpts: fastify.RouteShorthandOptions = {
   schema: {
     body: pdfRequest.bodySchema,
