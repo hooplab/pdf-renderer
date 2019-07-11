@@ -19,6 +19,7 @@ const pdfRenderer = pdf.launch({
 
 const server = fastify({
   ignoreTrailingSlash: true,
+  bodyLimit: 1048576 * 20, // 20 MiB
   logger: {
     prettyPrint: true,
     level: "info",
