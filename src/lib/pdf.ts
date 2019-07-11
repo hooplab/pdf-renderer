@@ -225,6 +225,8 @@ const render = async (
   }
 };
 
+const defaultTimeoutMs = 25000;
+
 const createRenderer = (
   pool: genericPool.Pool<puppeteer.Browser>
 ): Renderer => ({
@@ -232,7 +234,7 @@ const createRenderer = (
     const browser = await pool.acquire(LOW_PRIORITY);
 
     try {
-      const timeoutMs = options.timeout ? options.timeout : 10000;
+      const timeoutMs = options.timeout ? options.timeout : defaultTimeoutMs;
       return await timeout(render(browser, options), timeoutMs);
     } catch (err) {
       console.error(err);
