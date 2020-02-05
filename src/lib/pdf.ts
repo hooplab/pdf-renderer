@@ -225,7 +225,7 @@ const render = async (
   }
 };
 
-const defaultTimeoutMs = 25000;
+const defaultTimeoutMs = 50000;
 
 const createRenderer = (
   pool: genericPool.Pool<puppeteer.Browser>
