@@ -1,12 +1,11 @@
 import puppeteer, { WaitForSelectorOptions } from "puppeteer";
 import genericPool from "generic-pool";
+import assertNever from "../assert-never";
 
 const LOW_PRIORITY = 0;
 const HIGH_PRIORITY = 1;
 
-export interface RenderOptions {
-  url?: string;
-  html?: string;
+type BaseRenderOptions = {
   pdf: puppeteer.PDFOptions;
   waitForSelector?: {
     selector: string;
@@ -20,22 +19,34 @@ export interface RenderOptions {
   mediaType?: puppeteer.MediaType;
   defaultNavigationTimeout: number;
   defaultTimeout: number;
-}
+};
 
-export interface Renderer {
+type UrlRenderOptions = BaseRenderOptions & {
+  type: "url";
+  url: string;
+};
+
+type HtmlRenderOptions = BaseRenderOptions & {
+  type: "html";
+  html: string;
+};
+
+export type RenderOptions = UrlRenderOptions | HtmlRenderOptions;
+
+export type Renderer = {
   render(options: RenderOptions): Promise<Buffer>;
   isHealthy(): Promise<boolean>;
-}
+};
 
-export interface PoolOptions {
+export type PoolOptions = {
   min: number;
   max: number;
-}
+};
 
-export interface PdfLaunchOptions {
+export type PdfLaunchOptions = {
   puppeteer?: puppeteer.LaunchOptions;
   pool?: PoolOptions;
-}
+};
 
 const createPuppeteerPool = async (options: PdfLaunchOptions) => {
   const shouldRepair: { [key: number]: boolean } = {};
@@ -128,7 +139,7 @@ const render = async (
   });
 
   try {
-    if (options.url) {
+    if (options.type === "url") {
       // set default timeouts
       page.setDefaultTimeout(options.defaultTimeout);
       page.setDefaultNavigationTimeout(options.defaultNavigationTimeout);
@@ -159,13 +170,13 @@ const render = async (
       } else {
         throw new Error("response was null, somehow");
       }
-    } else if (options.html) {
+    } else if (options.type === "html") {
       console.log(
         `[render] setting page content. length: ${options.html.length}`
       );
       await page.setContent(options.html);
     } else {
-      throw new Error("either `url` or `html` must be set");
+      assertNever(options);
     }
 
     if (options.waitForSelector) {
