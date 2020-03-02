@@ -139,11 +139,11 @@ const render = async (
   });
 
   try {
-    if (options.type === "url") {
-      // set default timeouts
-      page.setDefaultTimeout(options.defaultTimeout);
-      page.setDefaultNavigationTimeout(options.defaultNavigationTimeout);
+    // set default timeouts
+    page.setDefaultTimeout(options.defaultTimeout);
+    page.setDefaultNavigationTimeout(options.defaultNavigationTimeout);
 
+    if (options.type === "url") {
       // navigate to page
       console.log(
         `[render] navigation to '${options.url}' with options: ${JSON.stringify(
