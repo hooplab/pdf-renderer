@@ -1,6 +1,7 @@
 import puppeteer, { WaitForSelectorOptions } from "puppeteer";
 import genericPool from "generic-pool";
 import assertNever from "../assert-never";
+import fastify from "fastify";
 
 const LOW_PRIORITY = 0;
 const HIGH_PRIORITY = 1;
@@ -34,8 +35,8 @@ type HtmlRenderOptions = BaseRenderOptions & {
 export type RenderOptions = UrlRenderOptions | HtmlRenderOptions;
 
 export type Renderer = {
-  render(options: RenderOptions): Promise<Buffer>;
-  isHealthy(): Promise<boolean>;
+  render(options: RenderOptions, log: fastify.Logger): Promise<Buffer>;
+  isHealthy(log: fastify.Logger): Promise<boolean>;
 };
 
 export type PoolOptions = {
@@ -48,12 +49,15 @@ export type PdfLaunchOptions = {
   pool?: PoolOptions;
 };
 
-const createPuppeteerPool = async (options: PdfLaunchOptions) => {
+const createPuppeteerPool = async (
+  options: PdfLaunchOptions,
+  log: fastify.Logger
+) => {
   const shouldRepair: { [key: number]: boolean } = {};
 
   const factory: genericPool.Factory<puppeteer.Browser> = {
     async create() {
-      console.log("[pool] creating a new browser");
+      log.info("[pool] creating a new browser");
 
       try {
         const browser = await puppeteer.launch(options.puppeteer);
@@ -64,22 +68,22 @@ const createPuppeteerPool = async (options: PdfLaunchOptions) => {
 
         // Trigger a cleanup if disconnected
         browser.once("disconnected", () => {
-          console.log(`[pool] browser with pid '${pid}' disconnected`);
+          log.info(`[pool] browser with pid`, pid, `disconnected`);
           shouldRepair[pid] = true;
         });
 
-        console.log(`[pool] created browser with pid ${pid}`);
+        log.info(`[pool] created browser with pid`, pid);
 
         return browser;
       } catch (err) {
-        console.error(`[pool] error while creating browser:`);
-        console.error(err);
+        log.error(`[pool] error while creating browser:`);
+        log.error(err);
         throw err;
       }
     },
 
     async destroy(browser) {
-      console.log("[pool] destroying browser");
+      log.info("[pool] destroying browser");
 
       try {
         // remove from list of pids
@@ -89,13 +93,13 @@ const createPuppeteerPool = async (options: PdfLaunchOptions) => {
         // close browser
         await browser.close();
       } catch (err) {
-        console.error("[pool] error while destroying browser:");
-        console.error(err);
+        log.error("[pool] error while destroying browser:");
+        log.error(err);
       }
     },
 
     async validate(browser) {
-      console.log("[pool] validating browser");
+      log.info("[pool] validating browser");
 
       try {
         const pid = browser.process().pid;
@@ -106,8 +110,8 @@ const createPuppeteerPool = async (options: PdfLaunchOptions) => {
 
         return true;
       } catch (err) {
-        console.log("[pool] error validating browser");
-        console.error(err);
+        log.error("[pool] error validating browser");
+        log.error(err);
         return false;
       }
     },
@@ -123,19 +127,23 @@ const createPuppeteerPool = async (options: PdfLaunchOptions) => {
 
 const render = async (
   browser: puppeteer.Browser,
-  options: RenderOptions
+  options: RenderOptions,
+  log: fastify.Logger
 ): Promise<Buffer> => {
   const page = await browser.newPage();
 
   page.on("error", err => {
-    console.error(`[render] page error:`);
-    console.error(err);
+    log.error(`[render] [error callback] page error:`);
+    log.error(err);
     throw new Error(`page error: ${err}`);
   });
 
   page.on("requestfailed", request => {
-    console.error(`[render] request failed: ${request}`);
-    throw new Error(`page request failed: ${request}`);
+    const msg = `[render] [requestfailed callback] request for url '${request.url()}' failed with status code '${request
+      .response()
+      ?.status()}' and status text '${request.response()?.statusText()}'`;
+    log.error(msg);
+    throw new Error(msg);
   });
 
   try {
@@ -145,9 +153,9 @@ const render = async (
 
     if (options.type === "url") {
       // navigate to page
-      console.log(
+      log.info(
         `[render] navigation to '${options.url}' with options: ${JSON.stringify(
-          options.navigation || {}
+          options.navigation ?? {}
         )}`
       );
 
@@ -171,30 +179,38 @@ const render = async (
         throw new Error("response was null, somehow");
       }
     } else if (options.type === "html") {
-      console.log(
-        `[render] setting page content. length: ${options.html.length}`
+      log.info(
+        `[render] setting content with length ${
+          options.html.length
+        } and options: ${JSON.stringify(options.navigation ?? {})}`
       );
       await page.setContent(options.html, options.navigation);
     } else {
       assertNever(options);
     }
 
+    // set media type
+    if (options.mediaType) {
+      log.info(`[render] setting media type to '${options.mediaType}'`);
+      await page.emulateMediaType(options.mediaType);
+    }
+
     if (options.waitForSelector) {
-      console.log(
-        `waiting for selector '${
+      log.info(
+        `[render] waiting for selector '${
           options.waitForSelector.selector
         }' with options: ${JSON.stringify(
-          options.waitForSelector.options || {}
+          options.waitForSelector.options ?? {}
         )}`
       );
       await page.waitForSelector(options.waitForSelector.selector);
     }
 
     if (options.waitForXpath) {
-      console.log(
-        `waiting for xpath '${
+      log.info(
+        `[render] waiting for xpath '${
           options.waitForXpath.xpath
-        }' with options: ${JSON.stringify(options.waitForXpath.options || {})}`
+        }' with options: ${JSON.stringify(options.waitForXpath.options ?? {})}`
       );
       await page.waitForXPath(
         options.waitForXpath.xpath,
@@ -202,14 +218,10 @@ const render = async (
       );
     }
 
-    // set media type
-    if (options.mediaType) {
-      console.log(`setting media type to '${options.mediaType}'`);
-      await page.emulateMediaType(options.mediaType);
-    }
-
     // create pdf
-    console.log(`creating pdf with options: ${JSON.stringify(options.pdf)}`);
+    log.info(
+      `[render] creating pdf with options: ${JSON.stringify(options.pdf ?? {})}`
+    );
     const pdf = await page.pdf(options.pdf);
 
     // close page (not waiting for it to complete)
@@ -221,7 +233,8 @@ const render = async (
       throw new Error("pdf response was null or undefined");
     }
   } catch (err) {
-    console.error("error occurred when rendering page", err);
+    log.error("[render] error occurred when rendering page");
+    log.error(err);
     throw err;
   }
 };
@@ -229,31 +242,35 @@ const render = async (
 const createRenderer = (
   pool: genericPool.Pool<puppeteer.Browser>
 ): Renderer => ({
-  async render(options: RenderOptions) {
+  async render(options: RenderOptions, log: fastify.Logger) {
     const browser = await pool.acquire(LOW_PRIORITY);
 
     try {
-      return await render(browser, options);
+      return await render(browser, options, log);
     } catch (err) {
-      console.error(err);
+      log.error(err);
       throw err;
     } finally {
       pool.release(browser);
     }
   },
 
-  async isHealthy() {
+  async isHealthy(log) {
     try {
       const browser = await pool.acquire(HIGH_PRIORITY);
       pool.release(browser);
       return true;
     } catch (err) {
+      log.error(err);
       return false;
     }
   },
 });
 
-export const launch = async (options: PdfLaunchOptions): Promise<Renderer> => {
-  const pool = await createPuppeteerPool(options);
+export const launch = async (
+  options: PdfLaunchOptions,
+  log: fastify.Logger
+): Promise<Renderer> => {
+  const pool = await createPuppeteerPool(options, log);
   return createRenderer(pool);
 };
