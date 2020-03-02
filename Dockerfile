@@ -1,4 +1,4 @@
-FROM node:11
+FROM node:13
 LABEL Author Håvard Lindset <havard@hoopla.no>
 
 RUN apt-get update \

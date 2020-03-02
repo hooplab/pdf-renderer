@@ -1,10 +1,7 @@
 import { LoadEvent, PDFFormat, MediaType } from "puppeteer";
 import { RenderOptions } from "../../lib/pdf";
 
-export interface Body {
-  url?: string;
-  html?: string;
-
+type BaseBody = {
   waitForNavigation?: LoadEvent | LoadEvent[];
   waitForSelector?: string;
   waitForXpath?: string;
@@ -21,7 +18,20 @@ export interface Body {
     bottom?: string;
     left?: string;
   };
-}
+
+  defaultNavigationTimeout?: number;
+  defaultTimeout?: number;
+};
+
+type UrlBody = BaseBody & {
+  url: string;
+};
+
+type HtmlBody = BaseBody & {
+  html: string;
+};
+
+export type Body = UrlBody | HtmlBody;
 
 const waitForNavigationEnum = [
   "load",
@@ -79,13 +89,13 @@ export const bodySchema = {
         left: { type: "string" },
       },
     },
+    defaultNavigationTimeout: { type: "number" },
+    defaultTimeout: { type: "number" },
   },
 };
 
 export const pdfBodyToRenderOptions = (body: Body): RenderOptions => {
-  return {
-    url: body.url,
-    html: body.html,
+  const shared = {
     navigation: body.waitForNavigation
       ? {
           waitUntil: body.waitForNavigation,
@@ -107,5 +117,11 @@ export const pdfBodyToRenderOptions = (body: Body): RenderOptions => {
       footerTemplate: body.footerTemplate,
       margin: body.margin,
     },
+    defaultNavigationTimeout: body.defaultNavigationTimeout ?? 60 * 1000,
+    defaultTimeout: body.defaultTimeout ?? 60 * 1000,
   };
+
+  return "url" in body
+    ? { type: "url", url: body.url, ...shared }
+    : { type: "html", html: body.html, ...shared };
 };
