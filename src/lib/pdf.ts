@@ -15,7 +15,7 @@ type BaseRenderOptions = {
     xpath: string;
     options?: WaitForSelectorOptions;
   };
-  navigation?: puppeteer.DirectNavigationOptions;
+  navigation?: puppeteer.NavigationOptions;
   mediaType?: puppeteer.MediaType;
   defaultNavigationTimeout: number;
   defaultTimeout: number;
@@ -174,7 +174,7 @@ const render = async (
       console.log(
         `[render] setting page content. length: ${options.html.length}`
       );
-      await page.setContent(options.html);
+      await page.setContent(options.html, options.navigation);
     } else {
       assertNever(options);
     }
