@@ -14,14 +14,12 @@
     "@types/generic-pool": "^3.1.9",
     "@types/node": "^10.12.10",
     "@types/puppeteer": "^2.0.1",
-    "@types/restify": "^7.2.6",
     "ts-node": "^7.0.1",
     "typescript": "^3.1.6"
   },
   "dependencies": {
     "fastify": "^1.13.0",
     "generic-pool": "^3.7.1",
-    "puppeteer": "^2.1.1",
-    "restify": "^7.2.3"
+    "puppeteer": "^2.1.1"
   }
 }
