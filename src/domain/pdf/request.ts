@@ -107,5 +107,7 @@ export const pdfBodyToRenderOptions = (body: Body): RenderOptions => {
       footerTemplate: body.footerTemplate,
       margin: body.margin,
     },
+    defaultNavigationTimeout: 5 * 60 * 1000,
+    defaultTimeout: 5 * 60 * 1000,
   };
 };

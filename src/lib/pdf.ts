@@ -8,7 +8,6 @@ export interface RenderOptions {
   url?: string;
   html?: string;
   pdf: puppeteer.PDFOptions;
-  timeout?: number;
   waitForSelector?: {
     selector: string;
     options?: WaitForSelectorOptions;
@@ -19,6 +18,8 @@ export interface RenderOptions {
   };
   navigation?: puppeteer.DirectNavigationOptions;
   mediaType?: puppeteer.MediaType;
+  defaultNavigationTimeout: number;
+  defaultTimeout: number;
 }
 
 export interface Renderer {
@@ -32,8 +33,8 @@ export interface PoolOptions {
 }
 
 export interface PdfLaunchOptions {
-  puppeteerLaunchOptions?: puppeteer.LaunchOptions;
-  poolOptions?: PoolOptions;
+  puppeteer?: puppeteer.LaunchOptions;
+  pool?: PoolOptions;
 }
 
 const createPuppeteerPool = async (options: PdfLaunchOptions) => {
@@ -44,7 +45,7 @@ const createPuppeteerPool = async (options: PdfLaunchOptions) => {
       console.log("[pool] creating a new browser");
 
       try {
-        const browser = await puppeteer.launch(options.puppeteerLaunchOptions);
+        const browser = await puppeteer.launch(options.puppeteer);
         const pid = browser.process().pid;
 
         // Update map of healthy pids
@@ -102,24 +103,12 @@ const createPuppeteerPool = async (options: PdfLaunchOptions) => {
   };
 
   return genericPool.createPool(factory, {
-    min: options.poolOptions ? options.poolOptions.min : 1,
-    max: options.poolOptions ? options.poolOptions.max : 10,
+    min: options.pool?.min ?? 1,
+    max: options.pool?.max ?? 10,
     autostart: true,
     testOnBorrow: true,
-    acquireTimeoutMillis: 10000,
   });
 };
-
-async function timeout<T>(promise: PromiseLike<T>, timeoutMs: number) {
-  const timeoutPromise: Promise<T> = new Promise((resolve, reject) => {
-    const id = setTimeout(() => {
-      reject(new Error("promise timed out"));
-      clearTimeout(id);
-    }, timeoutMs);
-  });
-
-  return await Promise.race([timeoutPromise, promise]);
-}
 
 const render = async (
   browser: puppeteer.Browser,
@@ -140,6 +129,10 @@ const render = async (
 
   try {
     if (options.url) {
+      // set default timeouts
+      page.setDefaultTimeout(options.defaultTimeout);
+      page.setDefaultNavigationTimeout(options.defaultNavigationTimeout);
+
       // navigate to page
       console.log(
         `[render] navigation to '${options.url}' with options: ${JSON.stringify(
@@ -183,10 +176,7 @@ const render = async (
           options.waitForSelector.options || {}
         )}`
       );
-      await page.waitForSelector(
-        options.waitForSelector.selector,
-        options.waitForSelector.options
-      );
+      await page.waitForSelector(options.waitForSelector.selector);
     }
 
     if (options.waitForXpath) {
@@ -204,7 +194,7 @@ const render = async (
     // set media type
     if (options.mediaType) {
       console.log(`setting media type to '${options.mediaType}'`);
-      await page.emulateMedia(options.mediaType);
+      await page.emulateMediaType(options.mediaType);
     }
 
     // create pdf
@@ -225,8 +215,6 @@ const render = async (
   }
 };
 
-const defaultTimeoutMs = 50000;
-
 const createRenderer = (
   pool: genericPool.Pool<puppeteer.Browser>
 ): Renderer => ({
@@ -234,8 +222,7 @@ const createRenderer = (
     const browser = await pool.acquire(LOW_PRIORITY);
 
     try {
-      const timeoutMs = options.timeout ? options.timeout : defaultTimeoutMs;
-      return await timeout(render(browser, options), timeoutMs);
+      return await render(browser, options);
     } catch (err) {
       console.error(err);
       throw err;
