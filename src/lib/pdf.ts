@@ -243,23 +243,19 @@ const createRenderer = (
   pool: genericPool.Pool<puppeteer.Browser>
 ): Renderer => ({
   async render(options: RenderOptions, log: fastify.Logger) {
-    const browser = await pool.acquire(LOW_PRIORITY);
-
     try {
-      return await render(browser, options, log);
+      return await pool.use(async browser => {
+        return await render(browser, options, log);
+      });
     } catch (err) {
       log.error(err);
       throw err;
-    } finally {
-      pool.release(browser);
     }
   },
 
   async isHealthy(log) {
     try {
-      const browser = await pool.acquire(HIGH_PRIORITY);
-      pool.release(browser);
-      return true;
+      return await pool.use(async () => true);
     } catch (err) {
       log.error(err);
       return false;
