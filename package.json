@@ -14,8 +14,8 @@
     "@types/generic-pool": "^3.1.9",
     "@types/node": "^10.12.10",
     "@types/puppeteer": "^2.0.1",
-    "ts-node": "^7.0.1",
-    "typescript": "^3.1.6"
+    "ts-node": "^8.6.2",
+    "typescript": "^3.8.3"
   },
   "dependencies": {
     "fastify": "^2.12.1",
