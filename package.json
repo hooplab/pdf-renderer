@@ -18,7 +18,7 @@
     "typescript": "^3.8.3"
   },
   "dependencies": {
-    "fastify": "^2.12.1",
+    "fastify": "^2.15.1",
     "generic-pool": "^3.7.1",
     "pino-pretty": "^3.6.0",
     "puppeteer": "^2.1.1"
