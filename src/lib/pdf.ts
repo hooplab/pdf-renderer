@@ -132,13 +132,13 @@ const render = async (
 ): Promise<Buffer> => {
   const page = await browser.newPage();
 
-  page.on("error", err => {
+  page.on("error", (err) => {
     log.error(`[render] [error callback] page error:`);
     log.error(err);
     throw new Error(`page error: ${err}`);
   });
 
-  page.on("requestfailed", request => {
+  page.on("requestfailed", (request) => {
     const msg = `[render] [requestfailed callback] request for url '${request.url()}' failed with status code '${request
       .response()
       ?.status()}' and status text '${request.response()?.statusText()}'`;
@@ -187,6 +187,17 @@ const render = async (
       await page.setContent(options.html, options.navigation);
     } else {
       assertNever(options);
+    }
+
+    // if format is not defined, use A4 width and height adjusted to content
+    if (!options.pdf.format && (!options.pdf.width || !options.pdf.height)) {
+      log.info(`[render] setting height to fit content`);
+      options.pdf.width = options.pdf.width ?? "8.27in";
+      let height = await page.evaluate(
+        () => document.documentElement.offsetHeight
+      );
+      // + 2px to avoid blank page at bottom
+      options.pdf.height = options.pdf.height ?? `${height + 2} px`;
     }
 
     // set media type
@@ -244,7 +255,7 @@ const createRenderer = (
 ): Renderer => ({
   async render(options: RenderOptions, log: fastify.Logger) {
     try {
-      return await pool.use(async browser => {
+      return await pool.use(async (browser) => {
         return await render(browser, options, log);
       });
     } catch (err) {
